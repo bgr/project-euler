@@ -45,23 +45,20 @@ def int_to_base(n, b):
 # and video series (parts 5-10) http://www.youtube.com/watch?v=4-mDIuPI8Rk
 
 
+import sys
+sys.setrecursionlimit(2500) # unpacking powers of "f" goes deep
+
 Mod = int(1e9) # since solution requires only last 9 digits
 
 def f(n,k,p=1):
+    "fast-growing hierarchy function"
     assert n > 0
     assert k >= 0
     assert p > 0
     # uncomment to see the expansion of "f" function
     #print "f_%s%s(%s)" % (k, ("^%s" % p) if p>1 else "", n)
-    if p > 1:
-        #return f(f(n,k,p-1),k,1)
-        #return f(f(n,k),k,p-1)
-        # have to use iterative version because of stack overflow
-        fval = n
-        while p > 0:
-            fval = f(fval,k)
-            p -= 1
-        return fval
+    if p > 1: # unpack, f^3(n) = f(f(f(n)))
+        return f(f(n,k,p-1),k,1)
     if k==0: # f_0(n) = n + 1
         return (n + 1) % Mod
     # handling k==1 does not seem to improve speed
@@ -75,14 +72,20 @@ def f(n,k,p=1):
     return f(n,k-1,n) # f_k+1(n) = f_k^n(n)
 
 
-lengths = []
-for num in range(1,16):
+# to calculate the length of a sequence for number n
+# represent n in base 2, and for every 1 digit recursively
+# apply the "f" function, with k equal to power of 2 for that digit
+# and the initial value being 3, and finally subtract 3
+# e.g. 5 = 101 = 2^2 + 2^0 -> G(5) = f_2(f_0(3)) - 3
+
+def goodstein_length(n):
+    "returns length (mod 1e9) of Goodstein sequence for seed n"
     fval = 3
-    for i,b in enumerate(int_to_base(num,2)):
+    for i,b in enumerate(int_to_base(n,2)):
         if b==1:
             fval = f(fval,i)
-    fval -= 3
-    lengths.append(int(fval))
-    print "G(%s) = %s (mod %s)" % (num, fval, Mod)
+    return fval - 3
 
+lengths = [goodstein_length(i) for i in range(1,16)]
+for i,l in enumerate(lengths): print "G(%s) = %s (mod %s)" % (i+1, l, Mod)
 print "Problem solution: %s" % (sum(lengths) % Mod)
